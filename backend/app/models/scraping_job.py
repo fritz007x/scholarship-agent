@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -40,11 +40,11 @@ class ScrapingLog(Base):
     __tablename__ = "scraping_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    job_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("scraping_jobs.id"), nullable=False, index=True)
     level = Column(String, nullable=False)  # INFO, WARNING, ERROR
     message = Column(Text, nullable=False)
     url = Column(String)
-    metadata = Column(JSON, default=dict)
+    extra_data = Column("metadata", JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationship
@@ -73,7 +73,7 @@ class ScraperConfig(Base):
 
     # Source-specific config
     base_url = Column(String)
-    metadata = Column(JSON, default=dict)
+    extra_data = Column("metadata", JSON, default=dict)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

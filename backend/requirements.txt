@@ -14,3 +14,8 @@ aiohttp==3.9.1
 beautifulsoup4==4.12.2
 lxml==4.9.3
 feedparser==6.0.10
+
+# Testing
+pytest==8.0.0
+httpx==0.26.0
+email-validator==2.1.0

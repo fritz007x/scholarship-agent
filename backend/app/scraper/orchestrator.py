@@ -70,7 +70,7 @@ class ScraperOrchestrator:
                 'jitter': config.jitter,
                 'max_retries': config.max_retries,
                 'base_url': config.base_url,
-                **(config.metadata or {}),
+                **(config.extra_data or {}),
             }
 
         # Default config
