@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from fastapi import HTTPException, status
 from typing import List, Optional
 from datetime import datetime
@@ -139,6 +140,7 @@ class ApplicationService:
         total, completed = ChecklistGenerator.calculate_progress(checklist)
 
         application.checklist = checklist
+        flag_modified(application, "checklist")
         application.checklist_total = total
         application.checklist_completed = completed
 
