@@ -52,7 +52,22 @@ export default function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
-      await profileAPI.update(data);
+      // Strip read-only fields that came from the GET response
+      const { id, user_id, created_at, updated_at, ...profileData } = data;
+
+      // Convert empty strings to null and numeric strings to numbers
+      const cleaned = Object.fromEntries(
+        Object.entries(profileData).map(([key, value]) => {
+          if (value === '' || value === undefined) return [key, null];
+          if (['gpa', 'gpa_scale', 'graduation_year', 'class_rank', 'class_size', 'estimated_efc'].includes(key) && value !== null) {
+            const num = Number(value);
+            return [key, isNaN(num) ? null : num];
+          }
+          return [key, value];
+        })
+      );
+
+      await profileAPI.update(cleaned);
       setMessage({ type: 'success', text: 'Profile saved successfully' });
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to save profile' });
