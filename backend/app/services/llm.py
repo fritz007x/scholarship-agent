@@ -1,6 +1,7 @@
 import json
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from app.config import get_settings
@@ -39,8 +40,8 @@ class LLMService:
     def __init__(self):
         self.enabled = bool(settings.google_api_key)
         if self.enabled:
-            genai.configure(api_key=settings.google_api_key)
-            self.model = genai.GenerativeModel(settings.gemini_model)
+            self.client = genai.Client(api_key=settings.google_api_key)
+            self.model_name = settings.gemini_model
 
     def is_available(self) -> bool:
         return self.enabled
@@ -77,7 +78,13 @@ Scholarship Description:
 JSON Output:"""
 
         try:
-            response = await self.model.generate_content_async(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
+                ),
+            )
             text = response.text.strip()
 
             # Extract JSON from response (handle markdown code blocks)
@@ -132,7 +139,13 @@ Consider:
 JSON Output:"""
 
         try:
-            response = await self.model.generate_content_async(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
+                ),
+            )
             text = response.text.strip()
 
             # Extract JSON from response
@@ -178,26 +191,40 @@ JSON Output:"""
             # Convert tool definitions to Gemini function declarations
             function_declarations = []
             for tool in tools:
-                func_decl = {
-                    "name": tool["name"],
-                    "description": tool["description"],
-                    "parameters": tool.get("parameters", {"type": "object", "properties": {}})
-                }
+                func_decl = types.FunctionDeclaration(
+                    name=tool["name"],
+                    description=tool["description"],
+                    parameters=tool.get("parameters", {"type": "OBJECT", "properties": {}})
+                )
                 function_declarations.append(func_decl)
 
-            # Create model with tools
-            model_with_tools = genai.GenerativeModel(
-                model_name=settings.gemini_model,
-                tools=[{"function_declarations": function_declarations}],
-                system_instruction=system_prompt if system_prompt else None
+            gemini_tools = [types.Tool(function_declarations=function_declarations)]
+
+            # Build contents from messages
+            contents = []
+            for msg in messages:
+                role = msg.get("role", "user")
+                parts_data = msg.get("parts", [])
+                parts = []
+                for p in parts_data:
+                    if isinstance(p, dict) and "text" in p:
+                        parts.append(types.Part.from_text(text=p["text"]))
+                    elif isinstance(p, str):
+                        parts.append(types.Part.from_text(text=p))
+                if parts:
+                    contents.append(types.Content(role=role, parts=parts))
+
+            # Call generate_content with tools
+            config = types.GenerateContentConfig(
+                tools=gemini_tools,
+                system_instruction=system_prompt if system_prompt else None,
             )
 
-            # Start chat
-            chat = model_with_tools.start_chat(history=messages[:-1] if len(messages) > 1 else [])
-
-            # Send the last message
-            last_message = messages[-1] if messages else {"parts": [{"text": "Hello"}]}
-            response = await chat.send_message_async(last_message.get("parts", [{"text": ""}]))
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config,
+            )
 
             # Parse response
             result = {
@@ -247,11 +274,14 @@ JSON Output:"""
             raise RuntimeError("LLM service not configured. Set GOOGLE_API_KEY in environment.")
 
         try:
-            model = genai.GenerativeModel(
-                model_name=settings.gemini_model,
-                system_instruction=system_prompt if system_prompt else None
+            config = types.GenerateContentConfig(
+                system_instruction=system_prompt if system_prompt else None,
             )
-            response = await model.generate_content_async(message)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=message,
+                config=config,
+            )
             return response.text
         except Exception as e:
             logger.exception(f"Error in simple_chat: {e}")
