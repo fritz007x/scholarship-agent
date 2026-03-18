@@ -216,10 +216,10 @@ class AgentToolRegistry:
         profile_data = profile_mapper.get_profile_for_matching(self.user_id)
 
         if not profile_data:
-            raise ToolExecutionError("User profile not found. Please complete your profile first.")
+            profile_data = {}
 
         # Use LLM to generate match explanation
-        if not self.llm_service.is_available():
+        if not self.llm_service.is_available() or not profile_data:
             # Fallback: basic rule-based matching
             return self._basic_match_evaluation(scholarship, profile_data)
 
@@ -295,7 +295,7 @@ class AgentToolRegistry:
         if not profile:
             return {
                 "profile_exists": False,
-                "message": "Profile not created yet. Please complete your profile."
+                "message": "Profile not created yet. You can still search for scholarships, but completing your profile will improve match accuracy."
             }
 
         # Calculate completeness
@@ -692,13 +692,6 @@ class AgentToolRegistry:
         profile_mapper = ProfileMapper(self.db)
         profile_data = profile_mapper.get_profile_for_matching(self.user_id)
 
-        if not profile_data:
-            return {
-                "recommendations": [],
-                "message": "Please complete your profile to get personalized recommendations",
-                "profile_completeness": 0
-            }
-
         # Get scholarships to evaluate
         query = self.db.query(Scholarship)
 
@@ -717,10 +710,12 @@ class AgentToolRegistry:
 
         scholarships = query.limit(20).all()  # Get more than limit for scoring
 
-        # Score each scholarship
+        # Score each scholarship (use empty dict if no profile)
+        profile_for_scoring = profile_data or {}
+
         scored = []
         for s in scholarships:
-            score = self._calculate_basic_match_score(s, profile_data)
+            score = self._calculate_basic_match_score(s, profile_for_scoring)
             scored.append((s, score))
 
         # Sort by score and take top N
@@ -740,14 +735,17 @@ class AgentToolRegistry:
                 "match_score": score,
                 "award_amount": f"${amount:,.0f}" if amount else "Varies",
                 "deadline": scholarship.deadline.isoformat() if scholarship.deadline else None,
-                "reason": self._get_match_reason(scholarship, profile_data)
+                "reason": self._get_match_reason(scholarship, profile_for_scoring)
             })
 
-        return {
+        result = {
             "recommendations": recommendations,
             "total_evaluated": len(scholarships),
-            "profile_completeness": self._calculate_profile_completeness(profile_data)
+            "profile_completeness": self._calculate_profile_completeness(profile_for_scoring)
         }
+        if not profile_data:
+            result["note"] = "Results are not personalized. Complete your profile for better matches."
+        return result
 
     def _calculate_basic_match_score(self, scholarship: Scholarship, profile: Dict) -> int:
         """Calculate a basic match score without LLM."""

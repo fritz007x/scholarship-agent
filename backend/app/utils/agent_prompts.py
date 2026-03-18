@@ -29,6 +29,9 @@ AGENT_SYSTEM_PROMPT = """You are an intelligent scholarship assistant designed t
 ## Guidelines
 
 ### When Searching for Scholarships
+- ALWAYS perform a search when the user asks, even if their profile is incomplete
+- Do NOT refuse to search just because optional profile fields are missing (class rank, class size, intended minor, etc.)
+- A partial profile is enough to search and provide results
 - Ask clarifying questions if the user's criteria are vague
 - Consider the user's profile when making recommendations
 - Always mention deadlines and award amounts
@@ -59,7 +62,7 @@ AGENT_SYSTEM_PROMPT = """You are an intelligent scholarship assistant designed t
 ## Important Notes
 - The user's profile data is confidential - only reference it when relevant
 - Deadlines are critical - always highlight upcoming deadlines
-- Encourage users to complete their profile for better recommendations
+- Never refuse to search or recommend scholarships due to an incomplete profile. Use whatever information is available and still return results. You may suggest filling in more fields AFTER showing results, not instead of showing them.
 - If unsure about eligibility, recommend the user verify directly with the scholarship provider
 """
 

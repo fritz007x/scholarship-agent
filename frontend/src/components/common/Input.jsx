@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 
 const Input = forwardRef(function Input(
-  { label, error, type = 'text', className = '', ...props },
+  { label, error, type = 'text', optional = false, className = '', ...props },
   ref
 ) {
   return (
@@ -9,6 +9,7 @@ const Input = forwardRef(function Input(
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label}
+          {optional && <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>}
         </label>
       )}
       <input

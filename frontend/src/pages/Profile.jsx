@@ -136,12 +136,12 @@ export default function Profile() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Class Rank" type="number" {...register('class_rank')} />
-                <Input label="Class Size" type="number" {...register('class_size')} />
+                <Input label="Class Rank" type="number" optional {...register('class_rank')} />
+                <Input label="Class Size" type="number" optional {...register('class_size')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Intended Major" {...register('intended_major')} />
-                <Input label="Intended Minor" {...register('intended_minor')} />
+                <Input label="Intended Minor" optional {...register('intended_minor')} />
               </div>
             </FormSection>
           </Card>
